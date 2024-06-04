@@ -7,12 +7,15 @@ class Serie:
     def __init__(self, url, path):
         self.path = path
         self.url = url
-        self.staffel = []
+        self.staffeln = []
         self.html = get_html(self.url)
         self.titleOfTheSeries = self.getTitleOfTheSeries()
         print("Serie: "+self.titleOfTheSeries)
         self.checkpath()
-        self.get_list()
+        self.get_list_of_staffel()
+        for staffel in self.staffeln:
+            #print(staffel)
+            Staffel(staffel,self)
 
 
     def getTitleOfTheSeries(self):
@@ -26,7 +29,7 @@ class Serie:
         self.path = self.path+"\\"+self.titleOfTheSeries
 
 
-    def get_list(self):
+    def get_list_of_staffel(self):
         stream_element = self.html.find(id='stream')
         li_elements = stream_element.find_all('li')
         for li in li_elements:
@@ -34,9 +37,7 @@ class Serie:
             if a_element:
                 if "episode" not in str(a_element):
                     i = 0
-                    print ("https://aniworld.to"+a_element.get('href'))
-                    staff = Staffel("https://aniworld.to"+a_element.get('href'), self)
-                    self.staffel.append(staff)
+                    self.staffeln.append("https://aniworld.to"+a_element.get('href'))
         return
     
 

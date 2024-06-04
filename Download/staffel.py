@@ -1,8 +1,7 @@
 from bs4 import BeautifulSoup
-#from episode import Episode
+from Download.episode import Episode
 import os
 from Download.functions import get_html
-#from episodenhulle import Episodenhulle
 import time
 
 class Staffel:
@@ -14,21 +13,30 @@ class Staffel:
         self.episodenListe = []
         self.html = get_html(self.url)        
         self.staffelName = self.get_staffel()
-        self.checkpath() 
+        self.createDir() 
 
-
-        self.list_of_not_downloaded_animes = []
-        self.vorhandeneEpisoden = []
+        self.vorhandeneEpisoden = {}
         self.get_mp4_file_paths(self.path)
-        #self.delete_double_episodes()
+
+        #for key, value in self.vorhandeneEpisoden.items():
+        #    print(key, value)
+
+        self.list_of_not_downloaded_animes ={}
         self.suche_noch_downloadbare_epsioden()
 
+        for key, value in self.list_of_not_downloaded_animes.items():
+            if "film" in self.url[self.url.rfind('/')+1:]:
+                Episode(self,self.url+"/film-"+key, value, key)
+            else:
+                Episode(self,self.url+"/episode-"+key, value, key)
+
+
         return 
-
-
+        
+        #self.delete_double_episodes()
         
 
-
+        
 
         if len(self.list_of_not_downloaded_animes) >= 1:
             self.downloaded()
@@ -45,7 +53,7 @@ class Staffel:
             return link.text
         
     
-    def checkpath(self):
+    def createDir(self):
         sta = self.staffelName
         if "Film" not in sta:
             sta = "Staffel "+sta
@@ -60,9 +68,9 @@ class Staffel:
                     try:
                         sp = file.split("_")
                         if sp[4] == "German.mp4":
-                            self.vorhandeneEpisoden.append(sp[1]+","+sp[2]+","+"True")
+                            self.vorhandeneEpisoden[sp[2]] = "True"
                         else:
-                            self.vorhandeneEpisoden.append(sp[1]+","+sp[2]+","+"False")
+                            self.vorhandeneEpisoden[sp[2]] = "False"
                     except Exception as e:
                         print(f"Unexpected error: {e}")
     
@@ -76,23 +84,34 @@ class Staffel:
                             print(f)
                             print(s)
 
-
+#if nicht deutsch aber deutsch vorhanden oder gar nicht vorhanden
     def suche_noch_downloadbare_epsioden(self):
         elements = self.html.find_all(attrs={'data-episode-season-id': True})
-        print(elements)
-        time.sleep(5)
         for element in elements:
-            gefunden = False
+            if element['data-episode-season-id'] in self.vorhandeneEpisoden:
+                if self.vorhandeneEpisoden[element['data-episode-season-id']] == False and 'title="Deutsch/German"' in str(element):
+                    self.list_of_not_downloaded_animes[element['data-episode-season-id']] = "True"
+            else:
+                if 'title="Deutsch/German"' in str(element):
+                    self.list_of_not_downloaded_animes[element['data-episode-season-id']] = "True"
+                else:
+                    self.list_of_not_downloaded_animes[element['data-episode-season-id']] = "False"
+            continue
+
+
+
             if element['data-episode-season-id'] != "none":
                 for episo in self.vorhandeneEpisoden:
-                    if episo.split(",")[1] == element['data-episode-season-id']:
-                        if "/german.svg" in str(element) and not episo.get_german():
-                            self.list_of_not_downloaded_animes.append(element)
+                    if episo == str(element['data-episode-season-id']):
+                        if "/german.svg" in str(element) and episo.split(",")[2] == "False": # not episo.get_german():
+                            i = 0
+                            #self.list_of_not_downloaded_animes.append(element)
                             #print("Deutsch Vorhanden "+ self.serie.get_title()+" "+self.staffelName+" "+str(element['data-episode-season-id']))
                         gefunden = True
                         break
                 if not gefunden:
-                    self.list_of_not_downloaded_animes.append(element)
+                    i = 0
+                    #self.list_of_not_downloaded_animes.append(element)
                     #print("Noch nicht Gedownloadet "+ self.serie.get_title()+" "+self.staffelName+" "+str(element['data-episode-season-id']))
 
 
